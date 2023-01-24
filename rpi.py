@@ -3,16 +3,11 @@
 # http://picamera.readthedocs.io/en/latest/recipes2.html#web-streaming
 
 import io
-import json
+import picamera
 import logging
 import socketserver
 from threading import Condition
 from http import server
-import numpy as np
-from PIL import Image
-import threading
-
-from kafka import KafkaConsumer
 
 PAGE = """\
 <html>
@@ -33,10 +28,16 @@ class StreamingOutput(object):
         self.buffer = io.BytesIO()
         self.condition = Condition()
 
-    def write(self, f):
-        with self.condition:
-            self.frame = f
-            self.condition.notify_all()
+    def write(self, buf):
+        if buf.startswith(b'\xff\xd8'):
+            # New frame, copy the existing buffer's content and notify all
+            # clients it's available
+            self.buffer.truncate()
+            with self.condition:
+                self.frame = self.buffer.getvalue()
+                self.condition.notify_all()
+            self.buffer.seek(0)
+        return self.buffer.write(buf)
 
 
 class StreamingHandler(server.BaseHTTPRequestHandler):
@@ -84,28 +85,14 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     daemon_threads = True
 
 
-def serve():
-    address = ('', 8000)
-    serv = StreamingServer(address, StreamingHandler)
-    serv.serve_forever()
-
-
-if __name__ == '__main__':
+with picamera.PiCamera(resolution='640x480', framerate=24) as camera:
     output = StreamingOutput()
-    # th = threading.Thread(target=serve())
-    # th.start()
-    print("init consumer")
-    consumer = KafkaConsumer(
-        "monitor",
-        bootstrap_servers="192.168.0.193:9092",
-        auto_offset_reset="latest"
-    )
-
-    for msg in consumer:
-        print("message received")
-        byte_val = msg.value
-        data = json.loads(byte_val)
-        img = np.array([data])
-        frame = Image.fromarray(img, 'RGB')
-        print(np.array(frame))
-        output.write(frame)
+    # Uncomment the next line to change your Pi's Camera rotation (in degrees)
+    # camera.rotation = 90
+    camera.start_recording(output, format='mjpeg')
+    try:
+        address = ('', 8000)
+        server = StreamingServer(address, StreamingHandler)
+        server.serve_forever()
+    finally:
+        camera.stop_recording()
