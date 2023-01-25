@@ -55,10 +55,7 @@ def stop(tf):
     gpio.cleanup()
 
 
-def key_input(cmd, sleep_time):
-    init()
-    key_press = cmd
-
+def key_input(key_press, sleep_time):
     if key_press.lower() == "w":
         forward(sleep_time)
     elif key_press.lower() == "s":
@@ -67,19 +64,24 @@ def key_input(cmd, sleep_time):
         turn_left(sleep_time)
     elif key_press.lower() == "d":
         turn_right(sleep_time)
+    elif key_press.lower() == "b":
+        brake(sleep_time)
     elif key_press.lower() == "p":
         stop(sleep_time)
         return True
-    elif key_press.lower() == "b":
-        brake(sleep_time)
     else:
         return True
 
 
-if __name__ == '__main__':
+def main():
     init()
     while True:
-        cmd = input("Enter cmd:")
-        mv = key_input(cmd, 0.006)
-        if mv:
+        key_press = input("Enter key: ")
+        sleep_time = 0.060
+        ret = key_input(key_press, sleep_time)
+        if ret:
             break
+
+
+if __name__ == '__main__':
+    main()

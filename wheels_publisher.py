@@ -25,7 +25,7 @@ STATE_CMD = {
 def move():
     try:
         f = open("cmd.txt", "r")
-        cmd = f.read()
+        cmd = f.read().replace("\n", "")
         f.close()
         sleep_time = 0.0060
         mover.key_input(STATE_CMD[cmd], sleep_time)
@@ -41,8 +41,9 @@ def move():
 if __name__ == '__main__':
     f = open("config.json")
     json_config = json.load(f)
-    Config["bootstrap_servers"] = json_config["bootstrap_servers"]
-    Config["topic"] = json_config["wheels"]["pub_topic"]
     mover.init()
-    stream = Stream(Config, json_config["wheels"]["sync_rate"])
+    Config["bootstrap_servers"] = json_config["kafka_url"]
+    Config["topic"] = json_config["wheels"]["pub_topic"]
+    stream = Stream(config=Config, sync_rate=json_config["wheels"]["sync_rate"])
     stream.publish(move)
+
