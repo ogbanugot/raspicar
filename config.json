@@ -1,0 +1,14 @@
+{
+	"picam": {
+		"resolution":[60, 60],
+		"framerate": 30,
+		"topic": "picam",
+		"sync_rate": 0.5
+		},
+	"wheels": {
+		"pub_topic": "wheels",
+		"sub_topic": "mover",		
+		"sync_rate": 0.5
+		},
+	"kafka_url":"192.168.0.193:9092"
+}
